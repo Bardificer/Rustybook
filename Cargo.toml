@@ -1,0 +1,35 @@
+[package]
+name = "rustybook"
+version = "0.1.2"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ron = "0.7"
+dotenv = "0.15.0"
+rand = "0.8.5"
+serde = "1.0.23"
+serde_derive = "1.0.23"
+
+
+[dependencies.serenity]
+git = "https://github.com/serenity-rs/serenity"
+branch = "current"
+features = [
+  "builder",
+  "cache",
+  "framework",
+  "model",
+  "standard_framework",
+  "rustls_backend",
+  "utils",
+]
+
+[dependencies.tokio]
+version = "1"
+features = ["full"]
+
+[dependencies.rustbreak]
+version = "2"
+features = ["ron_enc"]
