@@ -5,12 +5,19 @@ use serenity::client::Context;
 use serenity::framework::standard::macros::command;
 use serenity::framework::standard::{Args, CommandResult};
 use serenity::model::prelude::*;
+use std::collections::HashMap;
+use serde::Serialize;
+use serde::Deserialize;
 use std::str;
+use rustbreak::deser::Ron;
+use rustbreak::FileDatabase;
 
 
 #[command]
-#[description = "Roll for XdX dice, or give just a number to roll in the Between Clouds system. Currently counts 6s as rolls, so unusable for Kirins at the moment. Will fix in next update."]
-#[usage = "4d6"]
+#[description = "Roll for XdX dice, or give just a number to roll in the Between Clouds system. Add 'kirin' to roll as a kirin."]
+#[example = "3d6"]
+#[example = "4"]
+#[example = "8 kirin"]
 pub async fn roll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
     //cut args and split into vector
@@ -26,8 +33,12 @@ pub async fn roll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         print!("{:?}", outcome);
     } else {
         let die_count = argset[0].parse::<i32>().unwrap();
-        outcome = genroll(die_count, 6, "player");
-        print!("{:?}", outcome);
+        if argset.len() == 2 {
+            outcome = genroll(die_count, 6, &argset[1].to_lowercase())
+        } else {
+            outcome = genroll(die_count, 6, "player");
+            print!("{:?}", outcome);
+        }
     }
 
     msg.channel_id
@@ -47,18 +58,47 @@ fn genroll(count: i32, sides: i32, checktype: &str) -> String { //generic roll
     if checktype == "straight" {
         let sum: i32 = rolls.iter().sum();
         return format!("{:?} = {}", rolls, sum)
-    } else if checktype == "player" {
+    } else {
         return succeed(rolls, checktype);
     }
     return "There was a problem completing this action.".to_string()
 }
 
-fn succeed(rolls: Vec<i32>, _checktype: &str) -> String { //check for successes
-    let numofsuc = rolls.iter().filter(|&n| *n == 6).count();
+fn succeed(rolls: Vec<i32>, checktype: &str) -> String { //check for successes
+
+    let mut numofsuc = rolls.iter().filter(|&n| *n == 6).count();
+
+    if checktype == "kirin" {
+        numofsuc += rolls.iter().filter(|&n|*n == 5).count();
+    }
     if numofsuc == 1 {
         return format!("{} Success Rolled", numofsuc);
     }
     else {
         return format!("{} Successes Rolled", numofsuc);
     }
+}
+
+// CHARACTER COMMANDS (holy shit this is getting complex over here)
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Symbiote {
+    user: u64,
+    name: String,
+    attributes: HashMap<String, u32>,
+    role: String,
+    mutations: HashMap<String, String>,
+}
+
+fn save(sym: Symbiote, name: String) -> Result<(), rustbreak::RustbreakError> {
+    let db = FileDatabase::<HashMap<String, Symbiote>, Ron>::load_from_path_or_default("characters.ron")?;
+    println!("Writing to database");
+    db.write(|db| db.insert(name.into(), sym));
+    println!("Saving database");
+    db.save()?;
+
+    Ok(())
+}
+
+fn load(file: String, target: String) -> CommandResult {
+    Ok(())
 }
